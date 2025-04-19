@@ -19,6 +19,56 @@ Bu proje, kullanıcıların film izleme alışkanlıklarına ve değerlendirmele
 - scikit-learn (Öneri sistemi için)
 - Uvicorn (ASGI sunucusu)
 
+## Proje Yapısı
+
+```
+netflix/
+│
+├── main.py                 # Ana uygulama dosyası, FastAPI route'ları
+├── database.py            # Veritabanı bağlantısı ve session yönetimi
+├── recommendation.py      # K-means tabanlı film öneri sistemi
+├── schemas.py             # Pydantic modelleri (request/response şemaları)
+├── requirements.txt       # Proje bağımlılıkları
+│
+├── sql/                   # SQL dosyaları
+│   ├── create_tables.sql  # Veritabanı tablo yapıları
+│   ├── insert_movies.sql  # Film ve kategori örnek verileri
+│   └── sample_user_data.sql # Kullanıcı, izleme geçmişi ve puan örnek verileri
+│
+└── README.md             # Proje dokümantasyonu
+```
+
+### Dosya İçerikleri
+
+- **main.py**: FastAPI uygulaması ve endpoint tanımları
+- **database.py**: 
+  - SQLAlchemy veritabanı bağlantı ayarları
+  - PostgreSQL bağlantı bilgileri (kullanıcı, şifre, port vb.)
+  - Veritabanı session yönetimi
+  - Base model sınıfı tanımı
+  - Database bağlantı dependency'si (FastAPI için)
+- **recommendation.py**:
+  - K-means tabanlı film öneri sistemi
+  - Film ve kullanıcı özelliklerinin çıkarılması
+  - Kümeleme işlemleri
+  - Öneri algoritması
+- **schemas.py**: API request ve response modellerinin tanımları
+- **sql/create_tables.sql**: 
+  - Kullanıcılar tablosu
+  - Filmler tablosu
+  - Kategoriler tablosu
+  - Film-Kategori ilişki tablosu
+  - İzleme geçmişi tablosu
+  - Puanlar tablosu
+- **sql/insert_movies.sql**:
+  - Örnek film verileri (Inception, Dark Knight vb.)
+  - Film kategorileri
+  - Kategori-film ilişkileri
+- **sql/sample_user_data.sql**:
+  - Örnek kullanıcılar (aksiyon_sever, dram_sever vb.)
+  - Kullanıcıların izleme geçmişi
+  - Kullanıcıların film puanları
+
 ## Kurulum
 
 1. Gerekli paketleri yükleyin:
@@ -82,13 +132,41 @@ API dokümantasyonuna erişmek için:
 
 ## Öneri Sistemi Nasıl Çalışır?
 
-Sistem şu faktörleri göz önünde bulundurarak öneriler oluşturur:
-1. Kullanıcının izlediği filmlerin kategorileri
-2. İzleme süreleri (filmi ne kadar tamamladığı)
-3. Kullanıcının verdiği puanlar
-4. Film özellikleri (yıl, süre, IMDB puanı)
+Sistem, K-means kümeleme algoritması kullanarak hem filmleri hem de kullanıcıları benzer gruplara ayırır ve bu grupları kullanarak öneriler oluşturur.
 
-Öneriler, cosine similarity kullanılarak hesaplanır ve kullanıcının daha önce izlemediği filmler arasından seçilir.
+### Film Kümeleme
+1. Her film için özellik vektörü oluşturulur:
+   - Kategori bilgileri (one-hot encoding)
+   - Yıl (normalize edilmiş)
+   - Süre (normalize edilmiş)
+   - IMDB puanı
+   - Kullanıcı puanları ortalaması
+   - İzlenme sayısı (popülerlik)
+
+2. Filmler 5 kümeye ayrılır (varsayılan)
+
+### Kullanıcı Kümeleme
+1. Her kullanıcı için özellik vektörü oluşturulur:
+   - Kategori tercihleri (izleme süresi ve puanlara göre)
+   - Toplam izlenen film sayısı
+   - Ortalama verdiği puan
+   - İzleme süreleri
+
+2. Kullanıcılar 5 kümeye ayrılır (varsayılan)
+
+### Öneri Oluşturma Süreci
+1. Kullanıcının hangi kümede olduğu belirlenir
+2. Kullanıcının izlemediği filmler arasından:
+   - Aynı kümede olan filmler daha yüksek puan alır
+   - IMDB puanı yüksek filmler tercih edilir
+   - Popüler filmler tercih edilir
+3. En yüksek puanı alan filmler önerilir
+
+### Avantajları
+- Benzer kullanıcıları ve filmleri gruplar
+- Kategori, puan ve izleme süresi gibi çoklu faktörleri değerlendirir
+- Yeni kullanıcılar için de çalışabilir (cold start problemi)
+- Ölçeklenebilir ve hızlı
 
 ## Katkıda Bulunma
 
@@ -96,4 +174,4 @@ Sistem şu faktörleri göz önünde bulundurarak öneriler oluşturur:
 2. Feature branch'i oluşturun (`git checkout -b feature/amazing-feature`)
 3. Değişikliklerinizi commit edin (`git commit -m 'feat: add amazing feature'`)
 4. Branch'inizi push edin (`git push origin feature/amazing-feature`)
-5. Pull Request oluşturun 
+5. Pull Request oluşturun

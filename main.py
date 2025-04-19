@@ -4,109 +4,15 @@ from typing import List
 from netflix import models
 from netflix import schemas
 from netflix.database import engine, get_db
-import numpy as np
-from sklearn.metrics.pairwise import cosine_similarity
+from netflix.recommendation import FilmOneriSistemi
 
 # Veritabanı tablolarını oluştur
 models.Base.metadata.create_all(bind=engine)
 
 app = FastAPI(title="Netflix API")
 
-class FilmOneriSistemi:
-    def __init__(self):
-        self.film_ozellikleri = {}  # Film özellik matrisi
-        self.film_indeksleri = {}   # Film ID'lerinin indeks eşlemesi
-        
-    def film_ozelliklerini_olustur(self, db: Session):
-        """Film özelliklerini oluştur: kategoriler, ortalama puan, izlenme sayısı"""
-        filmler = db.query(models.Film).all()
-        self.film_indeksleri = {film.id: idx for idx, film in enumerate(filmler)}
-        
-        # Her film için özellik vektörü oluştur
-        ozellik_matrisi = []
-        for film in filmler:
-            ozellikler = []
-            
-            # Kategori özellikleri (one-hot encoding)
-            tum_kategoriler = db.query(models.Kategori).all()
-            for kategori in tum_kategoriler:
-                if kategori in film.kategoriler:
-                    ozellikler.append(1)
-                else:
-                    ozellikler.append(0)
-            
-            # Ortalama puan
-            puanlar = [p.puan for p in film.puanlar]
-            ort_puan = np.mean(puanlar) if puanlar else film.imdb_puani
-            ozellikler.append(ort_puan)
-            
-            # İzlenme sayısı
-            izlenme_sayisi = len(film.izleme_gecmisi)
-            ozellikler.append(izlenme_sayisi)
-            
-            # Yıl ve süre
-            ozellikler.append(film.yil / 2023)  # Normalize et
-            ozellikler.append(film.sure / 180)   # Normalize et
-            
-            ozellik_matrisi.append(ozellikler)
-        
-        self.film_ozellikleri = np.array(ozellik_matrisi)
-    
-    def kullanici_tercihlerini_hesapla(self, db: Session, kullanici_id: int):
-        """Kullanıcının film tercihlerini hesapla"""
-        kullanici = db.query(models.Kullanici).filter(models.Kullanici.id == kullanici_id).first()
-        if not kullanici:
-            return None
-            
-        # Kullanıcının izlediği ve puanladığı filmler
-        izlenen_filmler = {g.film_id: g.izlenen_sure for g in kullanici.izleme_gecmisi}
-        puanlanan_filmler = {p.film_id: p.puan for p in kullanici.puanlar}
-        
-        # Kullanıcı profili oluştur
-        kullanici_profili = np.zeros_like(self.film_ozellikleri[0])
-        for film_id, sure in izlenen_filmler.items():
-            if film_id in self.film_indeksleri:
-                idx = self.film_indeksleri[film_id]
-                agirlik = sure / 180  # İzlenme süresine göre ağırlık
-                if film_id in puanlanan_filmler:
-                    agirlik *= puanlanan_filmler[film_id] / 5  # Puana göre ağırlık
-                kullanici_profili += self.film_ozellikleri[idx] * agirlik
-        
-        return kullanici_profili
-    
-    def oneri_olustur(self, db: Session, kullanici_id: int, n_oneri: int = 5):
-        """Kullanıcıya film önerileri oluştur"""
-        # Film özelliklerini güncelle
-        self.film_ozelliklerini_olustur(db)
-        
-        # Kullanıcı profilini al
-        kullanici_profili = self.kullanici_tercihlerini_hesapla(db, kullanici_id)
-        if kullanici_profili is None:
-            return []
-            
-        # Kullanıcı profili ile tüm filmler arasındaki benzerliği hesapla
-        film_benzerlikleri = cosine_similarity([kullanici_profili], self.film_ozellikleri)[0]
-        
-        # En benzer filmleri bul
-        en_benzer_indeksler = np.argsort(film_benzerlikleri)[::-1]
-        
-        # Kullanıcının izlemediği filmleri öner
-        kullanici = db.query(models.Kullanici).filter(models.Kullanici.id == kullanici_id).first()
-        izlenen_filmler = {g.film_id for g in kullanici.izleme_gecmisi}
-        
-        oneriler = []
-        for idx in en_benzer_indeksler:
-            film_id = list(self.film_indeksleri.keys())[list(self.film_indeksleri.values()).index(idx)]
-            if film_id not in izlenen_filmler:
-                film = db.query(models.Film).filter(models.Film.id == film_id).first()
-                oneriler.append(film)
-                if len(oneriler) >= n_oneri:
-                    break
-        
-        return oneriler
-
 # Öneri sistemi örneği oluştur
-oneri_sistemi = FilmOneriSistemi()
+oneri_sistemi = FilmOneriSistemi(n_clusters=5)
 
 # Kullanıcı işlemleri
 @app.post("/kullanicilar/", response_model=schemas.Kullanici)
@@ -206,6 +112,6 @@ def film_onerileri(kullanici_id: int, n_oneri: int = 5, db: Session = Depends(ge
     if not kullanici:
         raise HTTPException(status_code=404, detail="Kullanıcı bulunamadı")
     
-    # Öneri oluştur
+    # K-means tabanlı öneri sistemini kullan
     onerilen_filmler = oneri_sistemi.oneri_olustur(db, kullanici_id, n_oneri)
     return onerilen_filmler 
