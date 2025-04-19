@@ -8,7 +8,7 @@ Bu proje, kullanıcıların film izleme alışkanlıklarına ve değerlendirmele
 - Film ve kategori yönetimi
 - İzleme geçmişi takibi
 - Film puanlama sistemi
-- Kişiselleştirilmiş film önerileri
+- K-means tabanlı kişiselleştirilmiş film önerileri
 - FastAPI ile modern REST API
 
 ## Teknolojiler
@@ -16,10 +16,10 @@ Bu proje, kullanıcıların film izleme alışkanlıklarına ve değerlendirmele
 - Python 3.8+
 - FastAPI
 - SQLAlchemy (PostgreSQL)
-- scikit-learn (Öneri sistemi için)
+- scikit-learn (K-means kümeleme)
 - Uvicorn (ASGI sunucusu)
 
-## Proje Yapısı
+## Proje yapısı
 
 ```
 netflix/
@@ -134,13 +134,41 @@ API dokümantasyonuna erişmek için:
 
 ## Öneri Sistemi Nasıl Çalışır?
 
-Sistem şu faktörleri göz önünde bulundurarak öneriler oluşturur:
-1. Kullanıcının izlediği filmlerin kategorileri
-2. İzleme süreleri (filmi ne kadar tamamladığı)
-3. Kullanıcının verdiği puanlar
-4. Film özellikleri (yıl, süre, IMDB puanı)
+Sistem, K-means kümeleme algoritması kullanarak hem filmleri hem de kullanıcıları benzer gruplara ayırır ve bu grupları kullanarak öneriler oluşturur.
 
-Öneriler, cosine similarity kullanılarak hesaplanır ve kullanıcının daha önce izlemediği filmler arasından seçilir.
+### Film Kümeleme
+1. Her film için özellik vektörü oluşturulur:
+   - Kategori bilgileri (one-hot encoding)
+   - Yıl (normalize edilmiş)
+   - Süre (normalize edilmiş)
+   - IMDB puanı
+   - Kullanıcı puanları ortalaması
+   - İzlenme sayısı (popülerlik)
+
+2. Filmler 5 kümeye ayrılır (varsayılan)
+
+### Kullanıcı Kümeleme
+1. Her kullanıcı için özellik vektörü oluşturulur:
+   - Kategori tercihleri (izleme süresi ve puanlara göre)
+   - Toplam izlenen film sayısı
+   - Ortalama verdiği puan
+   - İzleme süreleri
+
+2. Kullanıcılar 5 kümeye ayrılır (varsayılan)
+
+### Öneri Oluşturma Süreci
+1. Kullanıcının hangi kümede olduğu belirlenir
+2. Kullanıcının izlemediği filmler arasından:
+   - Aynı kümede olan filmler daha yüksek puan alır
+   - IMDB puanı yüksek filmler tercih edilir
+   - Popüler filmler tercih edilir
+3. En yüksek puanı alan filmler önerilir
+
+### Avantajları
+- Benzer kullanıcıları ve filmleri gruplar
+- Kategori, puan ve izleme süresi gibi çoklu faktörleri değerlendirir
+- Yeni kullanıcılar için de çalışabilir (cold start problemi)
+- Ölçeklenebilir ve hızlı
 
 ## Katkıda Bulunma
 
