@@ -24,12 +24,13 @@ Bu proje, kullanıcıların film izleme alışkanlıklarına ve değerlendirmele
 ```
 netflix/
 │
-├── main.py                 # Ana uygulama dosyası, FastAPI route'ları ve öneri sistemi
+├── main.py                 # Ana uygulama dosyası, FastAPI route'ları
 ├── database.py            # Veritabanı bağlantısı ve session yönetimi
+├── recommendation.py      # K-means tabanlı film öneri sistemi
 ├── schemas.py             # Pydantic modelleri (request/response şemaları)
 ├── requirements.txt       # Proje bağımlılıkları
 │
-├── sql/                   # SQL dosyaları
+├── sql/                  # SQL dosyaları
 │   ├── create_tables.sql  # Veritabanı tablo yapıları
 │   ├── insert_movies.sql  # Film ve kategori örnek verileri
 │   └── sample_user_data.sql # Kullanıcı, izleme geçmişi ve puan örnek verileri
