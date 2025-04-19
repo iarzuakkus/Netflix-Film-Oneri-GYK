@@ -22,7 +22,7 @@ class FilmOneriSistemi:
         for film in filmler:
             ozellikler = []
             
-            # Kategori özellikleri (one-hot encoding)
+            # Kategori ozellikleri (one-hot encoding)
             tum_kategoriler = db.query(models.Kategori).all()
             for kategori in tum_kategoriler:
                 if kategori in film.kategoriler:

@@ -33,7 +33,7 @@ class Film(Base):
     imdb_puani = Column(Float)
     resim_url = Column(String)
     
-    # İlişkiler
+    # iliskiler
     kategoriler = relationship("Kategori", secondary=film_kategori, back_populates="filmler")
     izleme_gecmisi = relationship("IzlemeGecmisi", back_populates="film")
     puanlar = relationship("Puan", back_populates="film")
