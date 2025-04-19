@@ -40,29 +40,36 @@ netflix/
 
 ### Dosya İçerikleri
 
-- **main.py**: FastAPI uygulaması ve film öneri sistemi implementasyonu
-- **schemas.py**: API request ve response modellerinin tanımları
+- **main.py**: FastAPI uygulaması ve endpoint tanımları
 - **database.py**: 
   - SQLAlchemy veritabanı bağlantı ayarları
   - PostgreSQL bağlantı bilgileri (kullanıcı, şifre, port vb.)
   - Veritabanı session yönetimi
   - Base model sınıfı tanımı
   - Database bağlantı dependency'si (FastAPI için)
+- **recommendation.py**:
+  - K-means tabanlı film öneri sistemi
+  - Film ve kullanıcı özelliklerinin çıkarılması
+  - Kümeleme işlemleri
+  - Öneri algoritması
+- **schemas.py**: API request ve response modellerinin tanımları
 - **sql/create_tables.sql**: 
-  - Kullanıcılar tablosu
-  - Filmler tablosu
-  - Kategoriler tablosu
+  - Kullanıcılar tablosu (id, kullanici_adi, email, sifre_hash)
+  - Filmler tablosu (id, baslik, aciklama, yil, sure, imdb_puani)
+  - Kategoriler tablosu (id, ad)
   - Film-Kategori ilişki tablosu
-  - İzleme geçmişi tablosu
-  - Puanlar tablosu
+  - İzleme geçmişi tablosu (kullanici_id, film_id, izlenen_sure)
+  - Puanlar tablosu (kullanici_id, film_id, puan)
+
 - **sql/insert_movies.sql**:
-  - Örnek film verileri (Inception, Dark Knight vb.)
+  - Örnek film verileri
   - Film kategorileri
-  - Kategori-film ilişkileri
+  - Film-kategori ilişkileri
+
 - **sql/sample_user_data.sql**:
-  - Örnek kullanıcılar (aksiyon_sever, dram_sever vb.)
-  - Kullanıcıların izleme geçmişi
-  - Kullanıcıların film puanları
+  - Test kullanıcıları (farklı film tercihleri olan)
+  - İzleme geçmişi kayıtları
+  - Film puanlamaları
 
 ## Kurulum
 
